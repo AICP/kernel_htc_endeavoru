@@ -46,7 +46,7 @@ static struct clk *cpu_clk;
 #define SHIFT_BITS 10
 #define SYN_WIRELESS_DEBUG
 /* #define SYN_CABLE_CONTROL */
-#define SYN_CALIBRATION_CONTROL
+/* #define SYN_CALIBRATION_CONTROL */
 /* #define SYN_FILTER_CONTROL */
 /* #define SYN_FLASH_PROGRAMMING_LOG */
 /* #define SYN_DISABLE_CONFIG_UPDATE */
