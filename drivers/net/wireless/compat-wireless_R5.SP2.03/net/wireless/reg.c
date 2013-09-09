@@ -1413,24 +1413,19 @@ static int __regulatory_hint(struct wiphy *wiphy,
 	bool intersect = false;
 	int r = 0;
 
-    pr_info("__regulatory_hint start !!!\n");
 	assert_cfg80211_lock();
 
 	r = ignore_request(wiphy, pending_request);
 
 	if (r == REG_INTERSECT) {
-        pr_info("__regulatory_hint  r == REG_INTERSECT\n");
 		if (pending_request->initiator ==
 		    NL80211_REGDOM_SET_BY_DRIVER) {
-            pr_info("__regulatory_hint  NL80211_REGDOM_SET_BY_DRIVER\n");
 			r = reg_copy_regd(&wiphy->regd, cfg80211_regdomain);
 			if (r) {
 				kfree(pending_request);
-                pr_info("__regulatory_hint  return 1\n");
 				return r;
 			}
 		}
-        pr_info("__regulatory_hint  intersect = true;\n");
 		intersect = true;
 	} else if (r) {
 		/*
@@ -1438,24 +1433,18 @@ static int __regulatory_hint(struct wiphy *wiphy,
 		 * driver has already been set just copy it to the
 		 * wiphy
 		 */
-        pr_info("__regulatory_hint  else if (r)\n");
 		if (r == -EALREADY &&
 		    pending_request->initiator ==
 		    NL80211_REGDOM_SET_BY_DRIVER) {
-            pr_info("__regulatory_hint  r == -EALREADY && NL80211_REGDOM_SET_BY_DRIVER\n");
 			r = reg_copy_regd(&wiphy->regd, cfg80211_regdomain);
 			if (r) {
 				kfree(pending_request);
-                pr_info("__regulatory_hint  return 2\n");
 				return r;
 			}
 			r = -EALREADY;
-            pr_info("__regulatory_hint  r = -EALREADY, goto new_request\n");
 			goto new_request;
 		}
-
 		kfree(pending_request);
-        pr_info("__regulatory_hint  return 3, %c%c\n",last_request->alpha2[0],last_request->alpha2[1]);
 		return r;
 	}
 
@@ -1475,18 +1464,15 @@ new_request:
 
 	/* When r == REG_INTERSECT we do need to call CRDA */
 	if (r < 0) {
-        pr_info("__regulatory_hint  r < 0\n");
 		/*
 		 * Since CRDA will not be called in this case as we already
 		 * have applied the requested regulatory domain before we just
 		 * inform userspace we have processed the request
 		 */
 		if (r == -EALREADY) {
-            pr_info("__regulatory_hint  r == -EALREADY\n");
 			nl80211_send_reg_change_event(last_request);
 			reg_set_request_processed();
 		}
-        pr_info("__regulatory_hint  return 4\n");
 		return r;
 	}
 

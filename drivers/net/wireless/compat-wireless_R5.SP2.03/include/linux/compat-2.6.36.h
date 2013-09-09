@@ -60,7 +60,7 @@ static inline int pcmcia_write_config_byte(struct pcmcia_device *p_dev, off_t wh
 	conf_reg_t reg = { 0, CS_WRITE, where, val };
 	return pcmcia_access_configuration_register(p_dev, &reg);
 }
-
+#if defined(CONFIG_MACH_ENDEAVORU) || defined(CONFIG_MACH_ENDEAVORTD)
 struct pm_qos_request_list {
 	u32 qos;
 	void *request;
@@ -94,6 +94,7 @@ struct pm_qos_request_list {
 
 #endif
 
+#endif
 /*
  * Dummy printk for disabled debugging statements to use whilst maintaining
  * gcc's format and side-effect checking.
