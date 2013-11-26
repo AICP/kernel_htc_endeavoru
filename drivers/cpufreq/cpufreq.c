@@ -33,6 +33,8 @@
 
 #include <trace/events/power.h>
 
+static DEFINE_MUTEX(dvfs_lock);
+
 /**
  * The "cpufreq driver" - the arch- or hardware-dependent low
  * level driver of CPUFreq support, and its spinlock. This lock
@@ -705,6 +707,87 @@ struct clk *cpu_clk_g = tegra_get_clock_by_name("cpu_g");
   return count;
 }
 #endif
+static ssize_t show_gpu_oc(struct cpufreq_policy *policy, char *buf)
+{
+  char *c = buf;
+  struct clk *gpu = tegra_get_clock_by_name("3d");
+  int i = gpu->dvfs->num_freqs;
+
+  if (i == 0)
+    return -EINVAL;
+
+  for (i--; i >= 1; i--)
+    c += sprintf(c, "%lu ", gpu->dvfs->freqs[i]/1000000);
+
+  return c - buf;
+}
+
+static ssize_t store_gpu_oc(struct cpufreq_policy *policy, const char *buf, size_t count)
+{
+  int ret;
+  unsigned long gpu_freq;
+
+  //all the tables that need to be updated with the new frequencies
+  struct clk *vde = tegra_get_clock_by_name("vde");
+  struct clk *mpe = tegra_get_clock_by_name("mpe");
+  struct clk *two_d = tegra_get_clock_by_name("2d");
+  struct clk *epp = tegra_get_clock_by_name("epp");
+  struct clk *three_d = tegra_get_clock_by_name("3d");
+  struct clk *three_d2 = tegra_get_clock_by_name("3d2");
+  struct clk *se = tegra_get_clock_by_name("se");
+  struct clk *host1x = tegra_get_clock_by_name("host1x");
+  struct clk *cbus = tegra_get_clock_by_name("cbus");
+  struct clk *pll_c = tegra_get_clock_by_name("pll_c");
+
+  const int array_size = vde->dvfs->num_freqs;
+  char cur_size[array_size];
+  int i = array_size;
+
+  if (i == 0) 
+    return -EINVAL;
+
+  for (i--; i >= 1; i--) {
+    ret = sscanf(buf, "%lu", &gpu_freq);
+
+    mutex_lock(&dvfs_lock);
+    if (i == array_size-1) {
+      vde->max_rate = gpu_freq*1000000;
+      mpe->max_rate = gpu_freq*1000000;
+      two_d->max_rate = gpu_freq*1000000;
+      epp->max_rate = gpu_freq*1000000;
+      three_d->max_rate = gpu_freq*1000000;
+      three_d2->max_rate = gpu_freq*1000000;
+      se->max_rate = gpu_freq*1000000;
+      host1x->max_rate = DIV_ROUND_UP((gpu_freq*1000000),2);
+      cbus->max_rate = gpu_freq*1000000;
+      pll_c->max_rate = (gpu_freq*1000000)*2;
+      pr_info("Set clk->max_rate. %d\n", i);
+    }
+
+    vde->dvfs->freqs[i] = gpu_freq*1000000;
+    mpe->dvfs->freqs[i] = gpu_freq*1000000;
+    two_d->dvfs->freqs[i] = gpu_freq*1000000;
+    epp->dvfs->freqs[i] = gpu_freq*1000000;
+    three_d->dvfs->freqs[i] = gpu_freq*1000000;
+    three_d2->dvfs->freqs[i] = gpu_freq*1000000;
+    se->dvfs->freqs[i] = gpu_freq*1000000;
+    cbus->dvfs->freqs[i] = gpu_freq*1000000;
+    if (i >= 6)
+      pll_c->dvfs->freqs[i] = (gpu_freq*1000000)*2;
+      
+    mutex_unlock(&dvfs_lock);
+
+    ret = sscanf(buf, "%s", cur_size);
+
+    if (ret == 0)
+      return 0;
+
+    buf += (strlen(cur_size) + 1);
+  }
+
+  return count;
+}
+
 
 cpufreq_freq_attr_ro_perm(cpuinfo_cur_freq, 0400);
 cpufreq_freq_attr_ro(cpuinfo_min_freq);
@@ -723,6 +806,7 @@ cpufreq_freq_attr_rw(scaling_setspeed);
 #ifdef CONFIG_VOLTAGE_CONTROL
 cpufreq_freq_attr_rw(UV_mV_table);
 #endif
+cpufreq_freq_attr_rw(gpu_oc);
 cpufreq_freq_attr_ro(policy_min_freq);
 cpufreq_freq_attr_ro(policy_max_freq);
 
@@ -741,6 +825,7 @@ static struct attribute *default_attrs[] = {
 #ifdef CONFIG_VOLTAGE_CONTROL
 	&UV_mV_table.attr,
 #endif
+	&gpu_oc.attr,
 	&policy_min_freq.attr,
 	&policy_max_freq.attr,
 	NULL
