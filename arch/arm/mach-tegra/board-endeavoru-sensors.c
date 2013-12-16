@@ -352,12 +352,39 @@ static void config_nfc_gpios(void)
 
 }
 
+static void nfc_gpio_deinit(void)
+{
+	tegra_pinmux_set_pullupdown(TEGRA_PINGROUP_SDMMC1_DAT1, TEGRA_PUPD_PULL_DOWN);
+	return;
+}
+
+static int nfc_init_check(void)
+{
+	int board_id = 0;
+	board_id = htc_get_pcbid_info();
+
+	/* Get HTC engineer-id */
+	if ((board_id >= PROJECT_PHASE_A) && ((engineer_id & 0x08) == 0)) {
+		printk(KERN_INFO "%s: engineer_id=[0x%x], with NFC chip\n", __func__, engineer_id);
+		return 1;
+	}
+	else if (board_id < PROJECT_PHASE_A) {
+		printk(KERN_INFO "%s: with NFC chip\n", __func__);
+		return 1;
+	}
+
+	printk(KERN_INFO "%s: engineer_id=[0x%x], without NFC chip.\n", __func__, engineer_id);
+	return 0;
+}
+
 static struct pn544_i2c_platform_data nfc_platform_data = {
     .gpio_init  = config_nfc_gpios,
     .irq_gpio = RUBY_GPIO_NFC_INT,
     .ven_gpio = RUBY_GPIO_NFC_VEN,
     .firm_gpio = RUBY_GPIO_NFC_DL,
     .ven_isinvert = 1,
+    .gpio_deinit = nfc_gpio_deinit,
+    .check_nfc_exist = nfc_init_check,
 };
 
 static struct i2c_board_info pn544_i2c_boardinfo[] = {
@@ -793,10 +820,8 @@ int __init endeavoru_sensors_init(void)
 
 
 	psensor_init();
-	if ((board_id >= PROJECT_PHASE_A) && ((engineer_id & 0x08) == 0))
-		endeavoru_nfc_init();
-	else if (board_id < PROJECT_PHASE_A)
-		endeavoru_nfc_init();
+
+	endeavoru_nfc_init();
 
 	endeavoru_battery_init();
 	return ret;

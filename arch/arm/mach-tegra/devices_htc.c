@@ -389,14 +389,13 @@ __setup("androidboot.mode=", board_mfg_mode_init);
 static int zchg_mode = 0;
 int __init board_zchg_mode_init(char *s)
 {
-	if (!strcmp(s, "1"))
-		zchg_mode = 1;
-	else if (!strcmp(s, "2"))
-		zchg_mode = 2;
-	else if (!strcmp(s, "3"))
-		zchg_mode = 3;
+	int ret = 0;
+	unsigned long value;
+	ret = strict_strtoul(s, 10, &value);
+	if (!ret)
+		zchg_mode = (int) value;
 
-	return 1;
+	return ret;
 }
 
 int board_zchg_mode(void)
