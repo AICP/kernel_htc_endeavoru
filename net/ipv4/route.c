@@ -2801,14 +2801,7 @@ static struct rtable *ip_route_output_slow(struct net *net, struct flowi4 *fl4)
 		fl4->saddr = FIB_RES_PREFSRC(net, res);
 
 	dev_out = FIB_RES_DEV(res);
-	// ** remove original code
-	//fl4->flowi4_oif = dev_out->ifindex;
-	// ** add protection for dev_out
-	if((!dev_out) || IS_ERR(dev_out)) {
-		goto out;
-	} else {
-		fl4->flowi4_oif = dev_out->ifindex;
-	}
+	fl4->flowi4_oif = dev_out->ifindex;
 
 
 make_route:
@@ -2832,6 +2825,7 @@ struct rtable *__ip_route_output_key(struct net *net, struct flowi4 *flp4)
 	struct rtable *rth;
 	unsigned int hash;
 
+//#ifdef CONFIG_HTC_NETWORK_MODIFY
 	if (IS_ERR(net) || (!net)) {
 		printk("[NET] net is NULL in %s\n", __func__);
 		return NULL;
@@ -2841,6 +2835,7 @@ struct rtable *__ip_route_output_key(struct net *net, struct flowi4 *flp4)
 		printk("[NET] flp4 is NULL in %s\n", __func__);
 		return NULL;
 	}
+//#endif
 
 	if (!rt_caching(net))
 		goto slow_output;

@@ -516,10 +516,8 @@ long st_kim_start(void *kim_data)
 			if (tty) {	/* can be called before ldisc is installed */
 				/* Flush any pending characters in the driver and discipline. */
 				tty_ldisc_flush(tty);
-                                if (tty && (tty->ops)){
 				tty_driver_flush_buffer(tty);
 				tty->ops->flush_buffer(tty);
-                                }
 			}
 
 			kim_gdata->ldisc_install = 0;
@@ -546,10 +544,8 @@ long st_kim_start(void *kim_data)
 					 * discipline.
 					 */
 					tty_ldisc_flush(tty);
-                                        if (tty && (tty->ops)){
 					tty_driver_flush_buffer(tty);
 					tty->ops->flush_buffer(tty);
-                                        }
 				}
 
 				kim_gdata->ldisc_install = 0;
@@ -594,10 +590,8 @@ long st_kim_stop(void *kim_data)
 	if (tty) {	/* can be called before ldisc is installed */
 	/* Flush any pending characters in the driver and discipline. */
 		tty_ldisc_flush(tty);
-                if (tty && (tty->ops)){
 		tty_driver_flush_buffer(tty);
 		tty->ops->flush_buffer(tty);
-                }
 	}
 
 	/* send uninstall notification to UIM */

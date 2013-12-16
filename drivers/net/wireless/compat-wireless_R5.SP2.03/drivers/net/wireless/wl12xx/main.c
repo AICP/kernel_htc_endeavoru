@@ -2785,6 +2785,10 @@ static void wl1271_op_stop_locked(struct wl1271 *wl)
 				       &wl->flags))
 			wl1271_enable_interrupts(wl);
 
+        printk("wl1271_op_stop_locked & recovery in progress, del wl->list to prevent kernel panic\n");
+        mutex_lock(&wl_list_mutex);
+		list_del(&wl->list);
+		mutex_unlock(&wl_list_mutex);
 		return;
 	}
 

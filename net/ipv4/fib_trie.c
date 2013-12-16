@@ -96,10 +96,6 @@ typedef unsigned int t_key;
 #define IS_TNODE(n) (!(n->parent & T_LEAF))
 #define IS_LEAF(n) (n->parent & T_LEAF)
 
-// ** [Start] HTC add iptables debug log
-#define FIB_RULE_DEBUG 1
-// ** [End] HTC add iptables debug log
-
 struct rt_trie_node {
 	unsigned long parent;
 	t_key key;
@@ -1205,9 +1201,6 @@ int fib_table_insert(struct fib_table *tb, struct fib_config *cfg)
 	key = ntohl(cfg->fc_dst);
 
 	pr_debug("Insert table=%u %08x/%d\n", tb->tb_id, key, plen);
-#ifdef FIB_RULE_DEBUG
-	printk(KERN_DEBUG "[NET][CORE][RULE] %s Insert table=%u %08x/%d\n", __func__,tb->tb_id,key, plen);
-#endif
 
 	mask = ntohl(inet_make_mask(plen));
 
@@ -1669,9 +1662,6 @@ int fib_table_delete(struct fib_table *tb, struct fib_config *cfg)
 		return -ESRCH;
 
 	pr_debug("Deleting %08x/%d tos=%d t=%p\n", key, plen, tos, t);
-#ifdef FIB_RULE_DEBUG
-	printk(KERN_DEBUG "[NET][CORE][RULE] %s Deleting %08x/%d tos=%d t=%p\n", __func__, key, plen, tos, t);
-#endif
 
 	fa_to_delete = NULL;
 	fa = list_entry(fa->fa_list.prev, struct fib_alias, fa_list);
@@ -1853,9 +1843,6 @@ int fib_table_flush(struct fib_table *tb)
 		trie_leaf_remove(t, ll);
 
 	pr_debug("trie_flush found=%d\n", found);
-#ifdef FIB_RULE_DEBUG
-	printk(KERN_DEBUG "[NET][CORE][RULE] %s trie_flush found=%d\n", __func__, found);
-#endif
 	return found;
 }
 

@@ -16,6 +16,7 @@
 #include <linux/miscdevice.h>
 #include <linux/wakelock.h>
 #include <linux/pn544.h>
+#include <mach/board_htc.h>
 
 int is_debug = 0;
 
@@ -51,6 +52,7 @@ struct pn544_dev	{
 	unsigned int 		firm_gpio;
 	void (*gpio_init) (void);
 	unsigned int 		ven_enable;
+	int boot_mode;
 };
 
 struct pn544_dev *pn_info;
@@ -626,6 +628,7 @@ static int pn544_probe(struct i2c_client *client,
 	pni->client   = client;
 	pni->gpio_init = platform_data->gpio_init;
 	pni->ven_enable = !platform_data->ven_isinvert;
+	pni->boot_mode = board_mfg_mode();
 
 	/*pn544_PowerOnSeq();*/
 
@@ -694,6 +697,16 @@ static int pn544_probe(struct i2c_client *client,
 		E("pn544_probe device_create_file dev_attr_debug_enable failed\n");
 		goto err_create_pn_file;
 	}
+
+	/*Disable NFC if it is not off-mode charging*/
+	if (pni->boot_mode != 5) {
+		I("%s: disable NFC by default (bootmode = %d)\n", __func__, pni->boot_mode);
+		pn544_Disable();
+	} else {
+		I("%s: enable NFC becasue off-mode charging (bootmode = %d)\n", __func__, pni->boot_mode);
+		pn544_Enable();
+	}
+
 
 	return 0;
 

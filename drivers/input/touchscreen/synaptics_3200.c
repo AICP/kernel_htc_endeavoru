@@ -31,7 +31,7 @@
 #include <linux/input/mt.h>
 #include <linux/pl_sensor.h>
 #include <linux/cm3629.h>
-
+#include <mach/mfootprint.h>
 extern int usb_get_connect_type(void);
 
 //#define SYN_SUSPEND_RESUME_POWEROFF
@@ -1395,7 +1395,7 @@ static ssize_t syn_fake_event_show(struct device *dev,
 
 	if (dx_fake && dy_fake)
 		count += sprintf(buf + count, "dx_fake or dy_fake should one value need to be zero\n");
-	else if (dx_fake || dx_fake)
+	else if (dx_fake || dy_fake)
 		hrtimer_start(&ts->timer, ktime_set(1, 0), HRTIMER_MODE_REL);
 
 	return count;
@@ -2004,6 +2004,7 @@ static void synaptics_ts_finger_func(struct synaptics_ts_data *ts)
 							if (finger_press_changed & BIT(i)) {
 								ts->pre_finger_data[i + 1][0] = finger_data[i][0];
 								ts->pre_finger_data[i + 1][1] = finger_data[i][1];
+
 								if (!ts->first_pressed)
 								printk(KERN_INFO "[TP] S%d@%d, %d\n", i + 1,
 									finger_data[i][0], finger_data[i][1]);
@@ -2665,12 +2666,12 @@ static int synaptics_ts_probe(
 		if (ts->packrat_number < SYNAPTICS_FW_3_2_PACKRAT) {
 			if ( NULL == pdata ) {
 				printk(KERN_ERR "[TP] TOUCH_ERR: get null platform data\n");
-				goto err_init_failed;
+					goto err_init_failed;
 			}
 		} else {
 			if (!pdata->packrat_number) {
 				printk(KERN_ERR "[TP] TOUCH_ERR: get null platform data\n");
-				goto err_init_failed;
+					goto err_init_failed;
 			}
 		}
 

@@ -4030,7 +4030,8 @@ static int usb_reset_and_verify_device(struct usb_device *udev)
 
 	set_bit(port1, parent_hub->busy_bits);
 	for (i = 0; i < SET_CONFIG_TRIES; ++i) {
-
+		if (udev->state == USB_STATE_NOTATTACHED)
+			break;
 		/* ep0 maxpacket size may change; let the HCD know about it.
 		 * Other endpoints will be handled by re-enumeration. */
 		usb_ep0_reinit(udev);

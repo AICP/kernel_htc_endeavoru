@@ -49,6 +49,10 @@ static struct mutex	led_mutex;
 static struct workqueue_struct *g_led_work_queue;
 static struct work_struct led_powerkey_work;
 static struct workqueue_struct *led_powerkey_work_queue;
+static struct work_struct backlight_off_work;
+static struct workqueue_struct *backlight_off_work_queue;
+static struct work_struct backlight_on_work;
+static struct workqueue_struct *backlight_on_work_queue;
 
 
 struct lp5521_led {
@@ -759,6 +763,7 @@ static void lp5521_led_birghtness_set(struct led_classdev *led_cdev,
 	struct i2c_client *client = private_lp5521_client;
 	struct lp5521_led *ldata;
 
+	I("%s +++", __func__);
 	if (brightness < 0)
 		brightness = 0;
 	else if (brightness > 255)
@@ -771,12 +776,12 @@ static void lp5521_led_birghtness_set(struct led_classdev *led_cdev,
 			lp5521_amber_on(client);
 		} else if (!strcmp(ldata->cdev.name, "button-backlight")) {
 			if ( backlight_mode != 2 )
-				lp5521_backlight_on(client);
+				queue_work(backlight_on_work_queue, &backlight_on_work);
 		}
 	} else {
 		if (!strcmp(ldata->cdev.name, "button-backlight")) {
 			if( backlight_mode == 1 )
-				lp5521_backlight_off(client);
+				queue_work(backlight_off_work_queue, &backlight_off_work);
 		}else if(!strcmp(ldata->cdev.name, "amber"))	 {
 			if( current_mode == 3 )
 				lp5521_dual_off(client);
@@ -785,6 +790,7 @@ static void lp5521_led_birghtness_set(struct led_classdev *led_cdev,
 				lp5521_dual_off(client);
 		}
 	}
+	I("%s ---", __func__);
 }
 
 static void led_powerkey_work_func(struct work_struct *work)
@@ -983,6 +989,30 @@ static void led_work_func(struct work_struct *work)
 	ldata = container_of(work, struct lp5521_led, led_work);
 	if ( offtimer_mode == current_mode )
 		lp5521_dual_off(client);
+	offtimer_mode = 0;
+	I(" %s ---\n" , __func__);
+}
+
+static void backlight_off_func(struct work_struct *work)
+{
+	struct i2c_client *client = private_lp5521_client;
+	struct lp5521_led *ldata;
+
+	I(" %s +++\n" , __func__);
+	ldata = container_of(work, struct lp5521_led, led_work);
+	lp5521_backlight_off(client);
+	offtimer_mode = 0;
+	I(" %s ---\n" , __func__);
+}
+
+static void backlight_on_func(struct work_struct *work)
+{
+	struct i2c_client *client = private_lp5521_client;
+	struct lp5521_led *ldata;
+
+	I(" %s +++\n" , __func__);
+	ldata = container_of(work, struct lp5521_led, led_work);
+	lp5521_backlight_on(client);
 	offtimer_mode = 0;
 	I(" %s ---\n" , __func__);
 }
@@ -1335,6 +1365,12 @@ static int lp5521_led_probe(struct i2c_client *client
 	led_powerkey_work_queue = create_workqueue("led_powerkey");
 	if (!led_powerkey_work_queue)
 		goto err_create_work_queue;
+	backlight_off_work_queue = create_workqueue("backlight_off");
+	if (!backlight_off_work_queue)
+		goto err_create_work_queue;
+	backlight_on_work_queue = create_workqueue("backlight_on");
+	if (!backlight_on_work_queue)
+		goto err_create_work_queue;
 	/* intail LED config */
 	for (i = 0; i < pdata->num_leds; i++) {
 		cdata->leds[i].cdev.name = pdata->led_config[i].name;
@@ -1375,6 +1411,8 @@ static int lp5521_led_probe(struct i2c_client *client
 				   led_alarm_handler);
 	}
 	INIT_WORK(&led_powerkey_work, led_powerkey_work_func);
+	INIT_WORK(&backlight_off_work, backlight_off_func);
+	INIT_WORK(&backlight_on_work, backlight_on_func);
 
 	/* === create device node === */
 	ret = device_create_file(&client->dev, &dev_attr_behavior);

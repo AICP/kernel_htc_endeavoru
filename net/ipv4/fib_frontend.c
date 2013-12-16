@@ -46,11 +46,6 @@
 #include <net/rtnetlink.h>
 #include <net/xfrm.h>
 
-// ** [Start] HTC add iptables debug log
-#define FIB_IPTABLES_DEBUG 1
-// ** [End] HTC add iptables debug log
-
-
 #ifndef CONFIG_IP_MULTIPLE_TABLES
 
 static int __net_init fib4_rules_init(struct net *net)
@@ -127,14 +122,6 @@ static void fib_flush(struct net *net)
 	struct hlist_node *node;
 	struct hlist_head *head;
 	unsigned int h;
-
-#ifdef FIB_IPTABLES_DEBUG
-	if (!(IS_ERR(net->rtnl) || (!net->rtnl) )) {
-			printk(KERN_DEBUG "[NET][CORE][RULE] %s:rtnl owner=%s,rtnl name=%s\n", __func__,net->rtnl->sk_prot->owner->name,net->rtnl->sk_prot->name);
-	}else {
-		printk(KERN_DEBUG "[NET][CORE][RULE] %s\n", __func__);
-	}
-#endif
 
 	for (h = 0; h < FIB_TABLE_HASHSZ; h++) {
 		head = &net->ipv4.fib_table_hash[h];
@@ -447,14 +434,6 @@ int ip_rt_ioctl(struct net *net, unsigned int cmd, void __user *arg)
 	struct rtentry rt;
 	int err;
 
-#ifdef FIB_IPTABLES_DEBUG
-	if (!(IS_ERR(net->rtnl) || (!net->rtnl) )) {
-			printk(KERN_DEBUG "[NET][CORE][RULE] %s:cmd=%d,rtnl owner=%s,rtnl name=%s\n", __func__,cmd,net->rtnl->sk_prot->owner->name,net->rtnl->sk_prot->name);
-	}else {
-		printk(KERN_DEBUG "[NET][CORE][RULE] %s:cmd=%d\n", __func__,cmd);
-	}
-#endif
-
 	switch (cmd) {
 	case SIOCADDRT:		/* Add a route */
 	case SIOCDELRT:		/* Delete a route */
@@ -583,11 +562,6 @@ static int inet_rtm_delroute(struct sk_buff *skb, struct nlmsghdr *nlh, void *ar
 	struct fib_table *tb;
 	int err;
 
-#ifdef FIB_IPTABLES_DEBUG
-	if (!(IS_ERR(skb->dev) || (!skb->dev)))
-		printk(KERN_DEBUG "[NET][CORE][RULE] %s:net_device name=%s,base_addr=%lu,irq=%d\n", __func__,skb->dev->name,skb->dev->base_addr,skb->dev->irq);
-#endif
-
 	err = rtm_to_fib_config(net, skb, nlh, &cfg);
 	if (err < 0)
 		goto errout;
@@ -609,11 +583,6 @@ static int inet_rtm_newroute(struct sk_buff *skb, struct nlmsghdr *nlh, void *ar
 	struct fib_config cfg;
 	struct fib_table *tb;
 	int err;
-
-#ifdef FIB_IPTABLES_DEBUG
-	if (!(IS_ERR(skb->dev) || (!skb->dev)))
-		printk(KERN_DEBUG "[NET][CORE][RULE] %s:net_device name=%s,base_addr=%lu,irq=%d\n", __func__,skb->dev->name,skb->dev->base_addr,skb->dev->irq);
-#endif
 
 	err = rtm_to_fib_config(net, skb, nlh, &cfg);
 	if (err < 0)
@@ -692,14 +661,6 @@ static void fib_magic(int cmd, int type, __be32 dst, int dst_len, struct in_ifad
 			.nl_net = net,
 		},
 	};
-
-#ifdef FIB_IPTABLES_DEBUG
-	if (!(IS_ERR(ifa->ifa_dev->dev) || (!ifa->ifa_dev->dev) )) {
-			printk(KERN_DEBUG "[NET][CORE][RULE] %s:net_dev name=%s,base_addr=%lu,irq=%d,cmd=%d\n", __func__,ifa->ifa_dev->dev->name,ifa->ifa_dev->dev->base_addr,ifa->ifa_dev->dev->irq,cmd);
-	}else {
-		printk(KERN_DEBUG "[NET][CORE][RULE] %s:cmd=%d\n", __func__,cmd);
-	}
-#endif
 
 	if (type == RTN_UNICAST)
 		tb = fib_new_table(net, RT_TABLE_MAIN);

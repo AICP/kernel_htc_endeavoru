@@ -1943,7 +1943,7 @@ void tcp_close(struct sock *sk, long timeout)
 		data_was_unread += len;
 
 		if ((skb) && (!IS_ERR(skb)))
-		  __kfree_skb(skb);
+		    __kfree_skb(skb);
 	}
 
 	sk_mem_reclaim(sk);

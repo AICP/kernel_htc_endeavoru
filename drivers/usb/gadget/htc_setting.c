@@ -1,5 +1,6 @@
 #include <mach/cable_detect.h>
 #include <linux/wakelock.h>
+#include <linux/usb/gadget.h>
 #include <mach/board_htc.h>
 #include <mach/usb_phy.h>
 
@@ -101,11 +102,7 @@ static void charger_detect(struct tegra_udc *udc)
 		udc->connect_type = CONNECT_TYPE_UNKNOWN;
 		queue_delayed_work(udc->usb_wq, &udc->chg_work,
 			DELAY_FOR_CHECK_CHG);
-		if (first_online) {
-			queue_delayed_work(system_nrt_wq, &udc->ac_detect_work, 6 * HZ);
-			first_online = 0;
-		} else
-			queue_delayed_work(system_nrt_wq, &udc->ac_detect_work, 3 * HZ);
+		queue_delayed_work(system_nrt_wq, &udc->ac_detect_work, 3 * HZ);
 	} else {
 		USB_INFO("Charger :AC [portsc:%x]\n", portsc);
 		udc->connect_type = CONNECT_TYPE_AC;
@@ -137,7 +134,6 @@ static void ac_detect_expired_work(struct work_struct *w)
 	u32 delay = 0;
 	u32 portsc;
 	u32 ret;
-	int nv_ret;
 	USB_INFO("%s: count = %d, connect_type = 0x%04x\n", __func__,
 			udc->ac_detect_count, udc->connect_type);
 
@@ -150,8 +146,7 @@ static void ac_detect_expired_work(struct work_struct *w)
 	/* detect shorted D+/D-, indicating AC power */
 	portsc = udc_readl(udc, PORTSCX_REG_OFFSET);
 	ret = (portsc & PORTSCX_LINE_STATUS_BITS);
-	nv_ret = tegra_usb_phy_charger_detected(udc->phy);
-	if (ret != PORTSCX_LINE_STATUS_BITS && !nv_ret) {
+	if (ret != PORTSCX_LINE_STATUS_BITS) {
 		/* Some carkit can't be recognized as AC mode.
 		 * Add SW solution here to notify battery driver should
 		 * work as AC charger when car mode activated.
@@ -165,7 +160,7 @@ static void ac_detect_expired_work(struct work_struct *w)
 
 		queue_delayed_work(system_nrt_wq, &udc->ac_detect_work, delay);
 	} else {
-		USB_INFO("USB -> AC charger ret(%d) nv(%d)\n", ret == PORTSCX_LINE_STATUS_BITS, nv_ret);
+		USB_INFO("USB -> AC charger ret(%d)\n", ret == PORTSCX_LINE_STATUS_BITS);
 		udc->connect_type = CONNECT_TYPE_AC;
 		queue_work(udc->usb_wq, &udc->notifier_work);
 		udc->ac_detect_count = 0;
@@ -203,7 +198,6 @@ static void usb_prepare(struct tegra_udc *udc)
 	wake_lock_init(&udc_resume_wake_lock, WAKE_LOCK_SUSPEND, "usb_udc_resume_lock");
 
 	udc->ac_detect_count = 0;
-	first_online = 1;
 
 #if defined(CONFIG_CABLE_DETECT_ACCESSORY)
 	cable_detect_register_notifier(&cable_status_notifier);
