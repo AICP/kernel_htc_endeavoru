@@ -84,3 +84,10 @@ GTAGS
 *.orig
 *~
 \#*#
+
+#
+# Generated compat-wireless files
+#
+drivers/net/wireless/compat-wireless_R5.SP2.03/Module.symvers
+drivers/net/wireless/compat-wireless_R5.SP2.03/include/linux/compat_autoconf.h
+drivers/net/wireless/compat-wireless_R5.SP2.03/modules
