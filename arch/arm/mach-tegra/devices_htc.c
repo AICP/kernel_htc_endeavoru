@@ -73,6 +73,36 @@ static unsigned char mfg_gpio_table[MFG_GPIO_TABLE_MAX_SIZE];
 #define EMMC_FREQ_533 533
 #define EMMC_FREQ_400 400
 
+static unsigned long boot_powerkey_debounce_ms;
+int __init boot_powerkey_debounce_time_init(char *s)
+{
+        int ret;
+        ret = strict_strtoul(s, 16, &boot_powerkey_debounce_ms);
+        if (ret != 0)
+                pr_err("%s: boot_powerkey_debounce_ms cannot be parsed from `%s'\r\n", __func__, s);
+        return 1;
+}
+__setup("bpht=", boot_powerkey_debounce_time_init);
+
+int sys_boot_powerkey_debounce_ms(char *page, char **start, off_t off,
+                           int count, int *eof, void *data)
+{
+        char *p = page;
+
+        p += sprintf(p, "%d\n", boot_powerkey_debounce_ms);
+        return p - page;
+}
+
+static int __init boot_powerkey_debounce_setting(void)
+{
+	struct proc_dir_entry* bpht_proc;
+        bpht_proc = create_proc_read_entry("powerkey_debounce_ms", 0, NULL, sys_boot_powerkey_debounce_ms, NULL);
+	if (!bpht_proc) {
+		printk(KERN_ERR "Unable to create /proc/powerkey_debounce_ms entry\n");
+        }
+}
+late_initcall(boot_powerkey_debounce_setting);
+
 /* setup calls mach->fixup, then parse_tags, parse_cmdline
  * We need to setup meminfo in mach->fixup, so this function
  * will need to traverse each tag to find smi tag.
