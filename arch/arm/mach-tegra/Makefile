@@ -80,6 +80,7 @@ obj-y                                   += headsmp.o
 obj-y                                   += reset.o
 obj-$(CONFIG_TEGRA_SYSTEM_DMA)          += dma.o
 obj-$(CONFIG_CPU_FREQ)                  += cpu-tegra.o
+obj-$(CONFIG_INTELLI_PLUG) += intelli_plug.o
 ifeq ($(CONFIG_TEGRA_AUTO_HOTPLUG),y)
 ifeq ($(CONFIG_CPUQUIET_FRAMEWORK),y)
 obj-$(CONFIG_ARCH_TEGRA_3x_SOC)         += cpuquiet.o
@@ -336,3 +337,4 @@ obj-y 					+= htc_util.o
 obj-$(CONFIG_HTC_MONITOR) += htc_monitor.o
 
 obj-$(CONFIG_HTC_FIQ_DUMPER) += fiq_dumper.o
+obj-$(CONFIG_RQ_STATS)			+= rq_stats.o
