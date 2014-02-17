@@ -7227,11 +7227,12 @@ void sched_show_task(struct task_struct *p)
 #ifdef CONFIG_DEBUG_STACK_USAGE
 	free = stack_not_used(p);
 #endif
+#ifdef CONFIG_DEBUG_KERNEL
 	printk(KERN_CONT "%5lu %5d %6d 0x%08lx c%d %llu\n", free,
 		task_pid_nr(p), task_pid_nr(p->real_parent),
 		(unsigned long)task_thread_info(p)->flags, p->on_cpu,
 		div64_u64(task_rq(p)->clock - p->sched_info.last_arrival, NSEC_PER_MSEC));
-
+#endif
 #if defined(CONFIG_DEBUG_MUTEXES)
 	if (state == TASK_UNINTERRUPTIBLE)
 		if (p->blocked_by)
@@ -7242,10 +7243,12 @@ void sched_show_task(struct task_struct *p)
 
 	cputime_t utime, stime;
 	task_times(p, &utime, &stime);
+#ifdef CONFIG_DEBUG_KERNEL
 	printk(KERN_CONT "  schedstat=( %llu %llu %lu ) utm=%lu stm=%lu\n",
 			(unsigned long long)p->se.sum_exec_runtime,
 			(unsigned long long)p->sched_info.run_delay,
 			p->sched_info.pcount, utime, stime);
+#endif
 
 	show_stack(p, NULL);
 }

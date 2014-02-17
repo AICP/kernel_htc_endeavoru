@@ -222,11 +222,8 @@ config HTC_PROJECT
        select WATCHDOG
        select TEGRA_WATCHDOG
        select TEGRA_WATCHDOG_ENABLE_ON_PROBE
-       select BOOTPARAM_SOFTLOCKUP_PANIC
-       select DEBUG_MUTEXES
        select ANDROID_RAM_CONSOLE_APPEND_PMIC_STATUS_BITS
        select HTC_POWER_OFF
-       select DEBUG_CREDENTIALS
        select HTC_FIQ_DUMPER
        select TEGRA_FIQ_DEBUGGER
        select GENERIC_BUG
