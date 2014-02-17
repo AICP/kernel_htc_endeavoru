@@ -65,54 +65,54 @@ static enum hrtimer_restart vib_timer_func(struct hrtimer *timer)
 	struct vibrator *vib = container_of(timer, struct vibrator, vib_timer);
 
 	int rc;
-	I(" %s +++\n", __func__);
-	printk("[VIB] vib_timer_func, vibration stop\n");
+	//I(" %s +++\n", __func__);
+	//printk("[VIB] vib_timer_func, vibration stop\n");
 	rc = gpio_direction_output(vib->pdata->ena_gpio, 0);
-	if(rc<0){
-		pr_err("[VIB] set gpio output direction fail in timer function\n");
-	}
+	//if(rc<0){
+	//	pr_err("[VIB] set gpio output direction fail in timer function\n");
+	//}
 	queue_work(vib_work_queue, &vib->work);
-	I(" %s ---\n", __func__);
+	//I(" %s ---\n", __func__);
 	return HRTIMER_NORESTART;
 }
 
 static void vibrator_start(struct vibrator *vib)
 {
 	int ret, rc = 0;
-	I(" %s +++\n", __func__);
-	if (debugmode == 1)
-		printk("[VIB] vibrator_start\n");
+	//I(" %s +++\n", __func__);
+	//if (debugmode == 1)
+	//	printk("[VIB] vibrator_start\n");
 	ret = regulator_is_enabled(regulator);
 	if (ret > 0)
 		regulator_disable(regulator);
 	rc = pwm_config(vib->pdata->pwm_data.pwm_dev, g_vib->pwm_duty, PLAYBACK_PERIOD_US);
-	if (rc < 0) {
-		printk("[VIB][START]: pwm config fails\n");
-	}
+	//if (rc < 0) {
+	//	printk("[VIB][START]: pwm config fails\n");
+	//}
 	pwm_enable(vib->pdata->pwm_data.pwm_dev);
 	gpio_direction_output(vib->pdata->ena_gpio, 1);
 	regulator_enable(regulator);
-	I(" %s ---\n", __func__);
+	//I(" %s ---\n", __func__);
 }
 
 static void vibrator_stop(struct vibrator *vib)
 {
 	int ret, rc = 0;;
 
-	I(" %s +++\n", __func__);
-	if (debugmode == 1)
-		printk("[VIB] vibrator_stop\n");
+	//I(" %s +++\n", __func__);
+	//if (debugmode == 1)
+	//	printk("[VIB] vibrator_stop\n");
 	rc = pwm_config(vib->pdata->pwm_data.pwm_dev, ZERO_DUTY_US, PLAYBACK_PERIOD_US);
-	if (rc < 0) {
-		printk("[VIB][STOP]: pwm config fails\n");
-	}
+	//if (rc < 0) {
+	//	printk("[VIB][STOP]: pwm config fails\n");
+	//}
 	pwm_enable(vib->pdata->pwm_data.pwm_dev);
 	gpio_direction_output(vib->pdata->ena_gpio, 0);
 	pwm_disable(vib->pdata->pwm_data.pwm_dev);
 	ret = regulator_is_enabled(regulator);
 	if (ret > 0)
 		regulator_disable(regulator);
-	I(" %s ---\n", __func__);
+	//I(" %s ---\n", __func__);
 }
 
 /*
@@ -126,14 +126,14 @@ static void vibrator_enable(struct timed_output_dev *dev, int value)
 	struct cpufreq_policy policy;
 	bool is_only_cpu0_online = (! (cpu_online(1) || cpu_online(2) || cpu_online(3)) );
 
-	I(" %s +++\n", __func__);
+	//I(" %s +++\n", __func__);
 	if (value < 0)
 		return;
 	if (value) {
-		printk(KERN_INFO "[VIB] vibration enable and duration time %d ms:%s(parent:%s): tgid=%d\n", value,current->comm, current->parent->comm, current->tgid);
+		//printk(KERN_INFO "[VIB] vibration enable and duration time %d ms:%s(parent:%s): tgid=%d\n", value,current->comm, current->parent->comm, current->tgid);
 		if(value==18) {
 			if(is_only_cpu0_online && cpufreq_get(0) < 475000) {
-				printk("[VIB] boost CPU#0 freq to 475MHZ\n");
+				//printk("[VIB] boost CPU#0 freq to 475MHZ\n");
 				/* To get policy of current cpu */
 				cpufreq_get_policy(&policy, smp_processor_id());
 				pm_qos_update_request(&boost_cpu_freq_req, (s32)BOOST_CPU_FREQ_MIN);
@@ -148,10 +148,10 @@ static void vibrator_enable(struct timed_output_dev *dev, int value)
 			      ktime_set(value / 1000, (value % 1000) * 1000000),
 			      HRTIMER_MODE_REL);
 	} else {
-		printk("[VIB] vibration disable.\n");
+		//printk("[VIB] vibration disable.\n");
 		vibrator_stop(vib);
 	}
-	I(" %s ---\n", __func__);
+	//I(" %s ---\n", __func__);
 }
 
 static void vib_work_func(struct work_struct *work)
@@ -314,13 +314,13 @@ static int vibrator_suspend(struct platform_device *pdev, pm_message_t state)
 {
 	struct vibrator *vib = platform_get_drvdata(pdev);
 
-	printk("[VIB][SUSPEND] vibrator_suspend +++\n");
+	//printk("[VIB][SUSPEND] vibrator_suspend +++\n");
 	vibrator_stop(vib);
 	hrtimer_cancel(&vib->vib_timer);
 	cancel_work_sync(&vib->work);
 	gpio_direction_output(vib->pdata->pwm_gpio, 0);
 	tegra_gpio_enable(vib->pdata->pwm_gpio);
-	printk("[VIB][SUSPEND] vibrator_suspend ---\n");
+	//printk("[VIB][SUSPEND] vibrator_suspend ---\n");
 	return 0;
 }
 
@@ -328,10 +328,10 @@ static int vibrator_resume(struct platform_device *pdev)
 {
 	struct vibrator *vib = platform_get_drvdata(pdev);
 
-	printk("[VIB][RESUME] vibrator_resume +++\n");
+	//printk("[VIB][RESUME] vibrator_resume +++\n");
 	tegra_gpio_disable(vib->pdata->pwm_gpio);
 	vib->pwm_duty = g_vib->pwm_duty;
-	printk("[VIB][RESUME] vibrator_resume ---\n");
+	//printk("[VIB][RESUME] vibrator_resume ---\n");
 	return 0;
 }
 
