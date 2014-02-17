@@ -58,7 +58,9 @@ static unsigned int clip_to_table(unsigned int cpu_freq)
 	return cpu_freq_table[i].frequency;
 }
 
+#ifdef CONFIG_BEST_TRADE_HOTPLUG
 extern unsigned int no_thermal_throttle_limit;
+#endif
 
 unsigned int tegra_throttle_governor_speed(unsigned int requested_speed)
 {
@@ -75,9 +77,11 @@ unsigned int tegra_throttle_governor_speed(unsigned int requested_speed)
 	if (!table_data)
 		return requested_speed;
 
-    /* ignore thermal throttle limitation */
-    if (unlikely(no_thermal_throttle_limit))
+#ifdef CONFIG_BEST_TRADE_HOTPLUG
+	/* ignore thermal throttle limitation */
+	if (unlikely(no_thermal_throttle_limit))
 		return requested_speed;
+#endif
 
 	cpu_freq_table = table_data->freq_table;
 	lowest_speed = cpu_freq_table[table_data->throttle_lowest_index].frequency;

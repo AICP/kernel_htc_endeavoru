@@ -248,13 +248,18 @@ static void edp_update_limit(void)
 #endif
 }
 
+#ifdef CONFIG_BEST_TRADE_HOTPLUG
 extern unsigned int no_edp_limit;
+#endif
 
 static unsigned int edp_governor_speed(unsigned int requested_speed)
 {
-    /* ignore EDP (regulator max output) limitation */
-    if (unlikely(no_edp_limit))
-        return requested_speed;
+
+#ifdef CONFIG_BEST_TRADE_HOTPLUG
+	/* ignore EDP (regulator max output) limitation */
+	if (unlikely(no_edp_limit))
+		return requested_speed;
+#endif
 
 	if ((!edp_limit) || (requested_speed <= edp_limit))
 		return requested_speed;
