@@ -120,7 +120,7 @@ static int tegra_pwm_backlight_update_status(struct backlight_device *bl)
 	tbl->params.duty_cycle = brightness & 0xFF;
 #endif
 
-	printk(KERN_INFO "[DISP] %s brightness=%d ,duty_cycle=%d\n",__FUNCTION__,brightness,tbl->params.duty_cycle);
+	//printk(KERN_INFO "[DISP] %s brightness=%d ,duty_cycle=%d\n",__FUNCTION__,brightness,tbl->params.duty_cycle);
 
 	pdata[1]=tbl->params.duty_cycle;
 	/* Call tegra display controller function to update backlight */
