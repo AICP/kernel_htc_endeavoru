@@ -60,6 +60,31 @@
 
 #define AUD_CPU_FREQ_MIN 102000
 
+static unsigned int audio_min_freq = AUD_CPU_FREQ_MIN;
+
+static int audio_min_freq_set(const char *arg, const struct kernel_param *kp)
+{
+	int tmp;
+
+	if (1 != sscanf(arg, "%d", &tmp))
+		return -EINVAL;
+		
+	audio_min_freq = tmp;
+    pr_info("audio_min_freq %d\n", audio_min_freq);
+   	return 0;
+}
+
+static int audio_min_freq_get(char *buffer, const struct kernel_param *kp)
+{
+	return param_get_uint(buffer, kp);
+}
+
+static struct kernel_param_ops audio_min_freq_ops = {
+	.set = audio_min_freq_set,
+	.get = audio_min_freq_get,
+};
+module_param_cb(audio_min_freq, &audio_min_freq_ops, &audio_min_freq, 0644);
+
 /* for quattro --- */
 int64_t pwr_up_time;
 int64_t drv_up_time;
@@ -417,8 +442,8 @@ void aic3008_votecpuminfreq(bool bflag)
     boldCPUMinReq = bflag;
     if (bflag)
     {
-        pm_qos_update_request(&aud_cpu_minfreq_req, (s32)AUD_CPU_FREQ_MIN);
-        AUD_INFO("VoteMinFreqS:%d", AUD_CPU_FREQ_MIN);
+        pm_qos_update_request(&aud_cpu_minfreq_req, (s32)audio_min_freq);
+        AUD_INFO("VoteMinFreqS:%d\n", audio_min_freq);
     }
     else
     {
