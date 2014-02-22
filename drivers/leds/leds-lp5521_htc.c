@@ -27,9 +27,8 @@
 #include <linux/leds.h>
 #include <linux/leds-lp5521_htc.h>
 #include <linux/regulator/consumer.h>
-#include <mach/mfootprint.h>
 #define LP5521_MAX_LEDS			3	/* Maximum number of LEDs */
-#define LED_DEBUG				1
+#define LED_DEBUG				0
 #if LED_DEBUG
 	#define D(x...) printk(KERN_DEBUG "[LED]" x)
 	#define I(x...) printk(KERN_INFO "[LED]" x)
@@ -40,7 +39,7 @@
 
 static int led_rw_delay;
 static int current_state, current_blink, current_time;
-static int current_currents, current_lut_coefficient, current_pwm_coefficient;
+static int current_currents = 0, current_lut_coefficient, current_pwm_coefficient;
 static int current_mode, backlight_mode, suspend_mode, offtimer_mode;
 static int amber_mode, button_brightness;
 static int slow_blink_brightness;
@@ -81,8 +80,9 @@ struct lp5521_chip {
 static long unsigned int lp5521_led_tag_status = 0;
 static int __init lp5521_led_tag(char *tag)
 {
+      int rc = 0;
 	if (strlen(tag))
-		strict_strtoul(tag, 16, &lp5521_led_tag_status);
+		rc = strict_strtoul(tag, 16, &lp5521_led_tag_status);
 	/* mapping */
 	if (lp5521_led_tag_status == 2)
 		lp5521_led_tag_status = DUAL_COLOR_BLINK;
@@ -574,6 +574,27 @@ static void lp5521_dual_color_blink(struct i2c_client *client)
 	I(" %s ---\n" , __func__);
 }
 
+static inline int button_brightness_adjust(struct i2c_client *client) {
+   uint8_t data = 0x00;
+   int ret = 0, brightness;
+   I("%s, current_mode: %d, backlight_mode: %d", __func__, current_mode, backlight_mode);
+
+   // if buttons are not on do nothing
+   if (current_mode == 0 && backlight_mode == 0)
+     return ret;
+
+   brightness = button_brightness;
+   backlight_mode = 1;
+   mutex_lock(&led_mutex);
+   I("locked %s", __func__);
+
+   data = (u8)brightness;
+   ret = i2c_write_block(client, 0x04, &data, 1);
+
+   mutex_unlock(&led_mutex);
+   return ret;
+}
+
 static void lp5521_backlight_on(struct i2c_client *client)
 {
 	uint8_t data = 0x00;
@@ -809,7 +830,7 @@ static void led_powerkey_work_func(struct work_struct *work)
 
 	I(" %s +++\n" , __func__);
 	pdata = client->dev.platform_data;
-	if( current_mode == 0  )
+	if (current_mode == 0 && backlight_mode == 0)
 		lp5521_led_enable(client);
 	mutex_lock(&led_mutex);
 	I("%s, backlight_mode: %d\n", __func__, backlight_mode);
@@ -1300,8 +1321,9 @@ static ssize_t lp5521_led_currents_store(struct device *dev,
 
 	sscanf(buf, "%d", &val);
 	I(" %s , val = %d\n" , __func__, val);
-	if (val < 0 || val > 255)
+	if (val < 0 || val > 3)
 		return -EINVAL;
+
 	current_currents = val;
 	led_cdev = (struct led_classdev *)dev_get_drvdata(dev);
 	ldata = container_of(led_cdev, struct lp5521_led, cdev);
@@ -1316,11 +1338,14 @@ static ssize_t lp5521_led_currents_store(struct device *dev,
 	udelay(500);
 	/* === set pwm to all === */
 	data = (u8)val;
-	if(!strcmp(ldata->cdev.name, "green"))	 {
+   // maxwen TODO disable green and amber currents
+    // interface - writing e.g. 255 to it will create
+    // an extreme bright led
+    /*if(!strcmp(ldata->cdev.name, "green"))   {
 		ret = i2c_write_block(client, 0x06, &data, 1);
 	} else if (!strcmp(ldata->cdev.name, "amber")) {
 		ret = i2c_write_block(client, 0x05, &data, 1);
-	} else if (!strcmp(ldata->cdev.name, "button-backlight")) {
+	} else*/ if (!strcmp(ldata->cdev.name, "button-backlight")) {
 		ret = i2c_write_block(client, 0x07, &data, 1);
 	}
 	mutex_unlock(&led_mutex);
@@ -1378,6 +1403,30 @@ static ssize_t lp5521_led_pwm_coefficient_store(struct device *dev,
 static DEVICE_ATTR(pwm_coefficient, 0644, lp5521_led_pwm_coefficient_show,
 					lp5521_led_pwm_coefficient_store);
 
+static ssize_t lp5521_led_button_brightness_show(struct device *dev,
+           struct device_attribute *attr, char *buf)
+{
+   return sprintf(buf, "%d\n", button_brightness);
+}
+
+static ssize_t lp5521_led_button_brightness_store(struct device *dev,
+            struct device_attribute *attr,
+            const char *buf, size_t count)
+{
+   struct i2c_client *client = private_lp5521_client;
+
+   sscanf(buf, "%d", &button_brightness);
+   if (button_brightness < 0) button_brightness=0;
+   if (button_brightness > 255) button_brightness=255;
+
+   button_brightness_adjust(client);
+
+   return count;
+}
+
+static DEVICE_ATTR(button_brightness, 0644, lp5521_led_button_brightness_show,
+           lp5521_led_button_brightness_store);
+
 
 static ssize_t lp5521_led_lut_coefficient_show(struct device *dev,
 				  struct device_attribute *attr, char *buf)
@@ -1430,13 +1479,13 @@ static void lp5521_led_early_suspend(struct early_suspend *handler)
 
 	printk("[LED][SUSPEND] lp5521_led_early_suspend +++\n");
 	suspend_mode = 1;
-	MF_DEBUG("00210000");
+
 	if( backlight_mode == 1 )
 		lp5521_backlight_off(client);
 	else if ( backlight_mode == 2 )
 		lp5521_led_current_set_for_key(0);
 	printk("[LED][SUSPEND] lp5521_led_early_suspend ---\n");
-	MF_DEBUG("00210001");
+
 }
 
 static void lp5521_led_late_resume(struct early_suspend *handler)
@@ -1453,7 +1502,7 @@ static int lp5521_led_probe(struct i2c_client *client
 	struct lp5521_chip		*cdata;
 	struct led_i2c_platform_data *pdata;
 	int ret, i;
-	uint8_t data;
+
 
 	printk("[LED][PROBE] led driver probe +++\n");
 
@@ -1543,6 +1592,11 @@ static int lp5521_led_probe(struct i2c_client *client
 			pr_err("%s: failed on create attr lut_coefficient [%d]\n", __func__, i);
 			goto err_register_attr_lut_coefficient;
 		}
+		ret = device_create_file(cdata->leds[i].cdev.dev, &dev_attr_button_brightness);
+        if (ret < 0) {
+             pr_err("%s: failed on create attr button_brightness [%d]\n", __func__, i);
+             goto err_register_attr_button_brightness;
+        }
 		INIT_WORK(&cdata->leds[i].led_work, led_work_func);
 		alarm_init(&cdata->leds[i].led_alarm,
 				   ANDROID_ALARM_ELAPSED_REALTIME_WAKEUP,
@@ -1583,7 +1637,10 @@ static int lp5521_led_probe(struct i2c_client *client
 err_fun_init:
 	device_remove_file(&client->dev, &dev_attr_behavior);
 	kfree(cdata);
-
+err_register_attr_button_brightness:
+    for (i = 0; i < pdata->num_leds; i++) {
+        device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_button_brightness);
+    }
 err_register_attr_lut_coefficient:
 	for (i = 0; i < pdata->num_leds; i++) {
 		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_lut_coefficient);
@@ -1640,6 +1697,7 @@ static int __devexit lp5521_led_remove(struct i2c_client *client)
 		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_currents);
 		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_pwm_coefficient);
 		device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_lut_coefficient);
+        device_remove_file(cdata->leds[i].cdev.dev,&dev_attr_button_brightness);
 		led_classdev_unregister(&cdata->leds[i].cdev);
 	}
 	destroy_workqueue(g_led_work_queue);
