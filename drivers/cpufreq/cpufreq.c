@@ -129,7 +129,7 @@ pure_initcall(init_cpufreq_transition_notifier_list);
 
 static LIST_HEAD(cpufreq_governor_list);
 static DEFINE_MUTEX(cpufreq_governor_mutex);
-
+	
 static struct cpufreq_policy *__cpufreq_cpu_get(unsigned int cpu, bool sysfs)
 {
 	struct cpufreq_policy *data;
@@ -224,8 +224,7 @@ static void adjust_jiffies(unsigned long val, struct cpufreq_freqs *ci)
 		pr_debug("saving %lu as reference value for loops_per_jiffy; "
 			"freq is %u kHz\n", l_p_j_ref, l_p_j_ref_freq);
 	}
-	if ((val == CPUFREQ_PRECHANGE  && ci->old < ci->new) ||
-	    (val == CPUFREQ_POSTCHANGE && ci->old > ci->new) ||
+	if ((val == CPUFREQ_POSTCHANGE  && ci->old != ci->new) ||
 	    (val == CPUFREQ_RESUMECHANGE || val == CPUFREQ_SUSPENDCHANGE)) {
 		loops_per_jiffy = cpufreq_scale(l_p_j_ref, l_p_j_ref_freq,
 								ci->new);
@@ -475,6 +474,28 @@ static ssize_t store_scaling_governor(struct cpufreq_policy *policy,
 	unsigned int ret = -EINVAL;
 	char	str_governor[16];
 	struct cpufreq_policy new_policy;
+#ifdef CONFIG_HOTPLUG_CPU
+	int cpu;
+#endif
+
+	ret = sscanf(buf, "%15s", str_governor);
+	if (ret != 1)
+		return -EINVAL;
+
+	// maxwen: try to set govenor to all online cpus
+	// else govvener will be set when cpu comes online the next time
+#ifdef CONFIG_HOTPLUG_CPU
+	for_each_present_cpu(cpu) {
+		ret = cpufreq_get_policy(&new_policy, cpu);
+		if (ret){
+			continue;
+		}
+		
+		if (cpufreq_parse_governor(str_governor, &new_policy.policy,
+						&new_policy.governor)){
+
+			continue;
+		}
 
 		/* Do not use cpufreq_set_policy here or the user_policy.max
 	   	will be wrongly overridden */
@@ -493,10 +514,6 @@ static ssize_t store_scaling_governor(struct cpufreq_policy *policy,
 	if (ret)
 		return ret;
 
-	ret = sscanf(buf, "%15s", str_governor);
-	if (ret != 1)
-		return -EINVAL;
-
 	if (cpufreq_parse_governor(str_governor, &new_policy.policy,
 						&new_policy.governor))
 		return -EINVAL;
@@ -510,8 +527,9 @@ static ssize_t store_scaling_governor(struct cpufreq_policy *policy,
 
 	if (ret)
 		return ret;
-	else
-		return count;
+#endif
+
+	return count;	
 }
 
 /**
@@ -814,6 +832,11 @@ static int cpufreq_add_dev_policy(unsigned int cpu,
 #ifdef CONFIG_SMP
 	unsigned long flags;
 	unsigned int j;
+	
+	// maxwen: we have already set the policy that we
+	// want to use in cpufreq_add_dev
+	// this makes sure that al cpus use the same governor
+#if 0
 #ifdef CONFIG_HOTPLUG_CPU
 	struct cpufreq_governor *gov;
 
@@ -823,6 +846,7 @@ static int cpufreq_add_dev_policy(unsigned int cpu,
 		pr_debug("Restoring governor %s for cpu %d\n",
 		       policy->governor->name, cpu);
 	}
+#endif
 #endif
 
 	for_each_cpu(j, policy->cpus) {
@@ -1059,8 +1083,10 @@ static int cpufreq_add_dev(struct sys_device *sys_dev)
 			break;
 		}
 	}
+		
 #endif
-	if (!found)
+
+	if (!found){
 		policy->governor = CPUFREQ_DEFAULT_GOVERNOR;
 	}
 
@@ -2126,7 +2152,7 @@ static int cpu_freq_notify(struct notifier_block *b,
 			   unsigned long l, void *v)
 {
 	int cpu;
-	pr_debug("PM QoS %s %lu\n",
+	pr_info("PM QoS PM_QOS_CPU_FREQ %s %lu\n",
 		b == &min_freq_notifier ? "min" : "max", l);
 	for_each_online_cpu(cpu) {
 		struct cpufreq_policy *policy = cpufreq_cpu_get(cpu);
@@ -2162,3 +2188,4 @@ static int __init cpufreq_core_init(void)
 	return 0;
 }
 core_initcall(cpufreq_core_init);
+
