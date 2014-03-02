@@ -432,7 +432,7 @@ config TEGRA_EMC_SCALING_ENABLE
 config VOLTAGE_CONTROL
 	bool "Enable user voltage control on Tegra CPU"
 	depends on TEGRA_SILICON_PLATFORM
-	default n
+	default y
 	help
 	User custom voltage control interface
 
@@ -616,7 +616,7 @@ config TEGRA_GAMING_FIX
 config TEGRA_GPU_OVERCLOCK
 	bool "Tegra3 GPU Overclocking"
 	depends on ARCH_TEGRA_3x_SOC
-	default n
+	default y
 	help
 	  Tegra3 GPU overclocking
 
