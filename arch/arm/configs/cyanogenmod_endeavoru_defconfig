@@ -589,6 +589,8 @@ CONFIG_TEGRA_GPU_OVERCLOCK=y
 #
 # CONFIG_CPUQUIET_FRAMEWORK is not set
 
+
+
 #
 # Floating point emulation
 #
@@ -1598,6 +1600,7 @@ CONFIG_UNIX98_PTYS=y
 # CONFIG_TRACE_SINK is not set
 CONFIG_DEVMEM=y
 # CONFIG_DEVKMEM is not set
+CONFIG_FRANDOM=m
 
 #
 # Serial drivers
