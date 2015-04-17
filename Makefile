@@ -564,6 +564,10 @@ else
 KBUILD_CFLAGS	+= -O2
 endif
 
+ifdef CONFIG_CC_OPTIMIZE_DEFAULT
+KBUILD_CFLAGS  += -O2 -marm -march=armv7-a -mfpu=neon -ftree-vectorize -funsafe-math-optimizations -mfloat-abi=softfp -fsched-spec-load -mcpu=cortex-a9 -mtune=cortex-a9
+endif
+
 include $(srctree)/arch/$(SRCARCH)/Makefile
 
 ifneq ($(CONFIG_FRAME_WARN),0)
